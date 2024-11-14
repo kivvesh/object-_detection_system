@@ -1,6 +1,6 @@
 *.png
-yolov4.cfg
-yolov4.weights
+*.cfg
+*.weights
 coco.names
 venv/
-.idea/
+.idea/*
