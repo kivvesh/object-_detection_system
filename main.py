@@ -1,82 +1,136 @@
-import cv2
-import numpy as np
+import os
+import tkinter as tk
 
-# Загрузка классов
-with open('coco.names', 'r') as f:
-    classes = [line.strip() for line in f.readlines()]
+from tkinter import filedialog, simpledialog, messagebox
+from datetime import datetime
 
-# Загрузка модели YOLO
-net = cv2.dnn.readNetFromDarknet('yolov4.cfg', 'yolov4.weights')
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Функция для обнаружения объектов
-def detect_objects(image):
-    height, width = image.shape[:2]
+class ImageAnalyzerApp:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Анализ изображений и видео")
+        self.master.geometry("400x300")
 
-    # Подготовка изображения для нейросети
-    blob = cv2.dnn.blobFromImage(image, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-    net.setInput(blob)
+        # Кнопки
+        self.btn_image_analysis = tk.Button(master, text="Анализ изображения", command=self.open_image_analysis)
+        self.btn_image_analysis.pack(pady=10)
 
-    # Получение выходных слоев
-    layer_names = net.getLayerNames()
-    output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+        self.btn_video_analysis = tk.Button(master, text="Анализ видео", command=self.open_video_analysis)
+        self.btn_video_analysis.pack(pady=10)
 
-    # Запуск детекции
-    outputs = net.forward(output_layers)
+        self.btn_ip_camera_analysis = tk.Button(master, text="Анализ видеоопотока с IP-камеры", command=self.open_ip_camera_analysis)
+        self.btn_ip_camera_analysis.pack(pady=10)
 
-    boxes = []
-    confidences = []
-    class_ids = []
+        self.btn_webcam_analysis = tk.Button(master, text="Анализ с веб-камеры", command=self.open_webcam_analysis)
+        self.btn_webcam_analysis.pack(pady=10)
 
-    # Обработка результатов
-    for output in outputs:
-        for detection in output:
-            scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            if confidence > 0.5:  # Порог уверенности
-                center_x = int(detection[0] * width)
-                center_y = int(detection[1] * height)
-                w = int(detection[2] * width)
-                h = int(detection[3] * height)
+    def open_image_analysis(self):
+        window = tk.Toplevel(self.master)
+        window.title("Анализ изображения")
+        window.geometry('240x240')
 
-                # Рисование рамки вокруг объекта
-                x = int(center_x - w / 2)
-                y = int(center_y - h / 2)
+        tk.Label(window, text="Выберите изображение:").pack(pady=5)
+        tk.Button(window, text="Выбрать файл", command=lambda: self.select_file(window)).pack(pady=5)
 
-                boxes.append([x, y, w, h])
-                confidences.append(float(confidence))
-                class_ids.append(class_id)
+        tk.Label(window, text="Процент точности:").pack(pady=5)
+        accuracy_input = tk.Entry(window)
+        accuracy_input.pack(pady=5)
 
-    # Ненужные рамки
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+        # tk.Label(window, text="Размер:").pack(pady=5)
+        # size_input = tk.Entry(window)
+        # size_input.pack(pady=5)
 
-    for i in indexes:
-        x, y, w, h = boxes[i]
-        label = str(classes[class_ids[i]])
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(image, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_image(accuracy_input.get())).pack(pady=10)
 
-    return image
+    def open_video_analysis(self):
+        window = tk.Toplevel(self.master)
+        window.title("Анализ видео")
+        window.geometry('240x240')
 
-# Загрузка изображения
-image_path = 'img.png'  # Укажите путь к вашему изображению
-image = cv2.imread(image_path)
+        tk.Label(window, text="Выберите видео:").pack(pady=5)
+        tk.Button(window, text="Выбрать файл", command=lambda: self.select_file(window)).pack(pady=5)
 
-# Обнаружение объектов
-result_image = detect_objects(image)
+        tk.Label(window, text="Процент точности:").pack(pady=5)
+        accuracy_input = tk.Entry(window)
+        accuracy_input.pack(pady=5)
 
-# Автоматическое определение размера для вывода
-max_width = 800  # Максимальная ширина для вывода
-aspect_ratio = result_image.shape[1] / result_image.shape[0]  # Соотношение сторон
+        tk.Label(window, text="Размер:").pack(pady=5)
+        size_input = tk.Entry(window)
+        size_input.pack(pady=5)
 
-# Определяем новую высоту на основе максимальной ширины и соотношения сторон
-new_width = max_width
-new_height = int(max_width / aspect_ratio)
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_video(accuracy_input.get(), size_input.get())).pack(pady=10)
 
-# Изменение размера выходного изображения
-resized_image = cv2.resize(result_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    def open_ip_camera_analysis(self):
+        window = tk.Toplevel(self.master)
+        window.title("Анализ видеоопотока с IP-камеры")
+        window.geometry('520x240')
 
-# Отображение результата
-cv2.imshow('Detected Objects', resized_image)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+        tk.Label(window, text="URL IP-камеры:").pack(pady=5)
+        ip_input = tk.Entry(window, width=420)
+        ip_input.pack(pady=5)
+
+        tk.Label(window, text="Процент точности:").pack(pady=5)
+        accuracy_input = tk.Entry(window)
+        accuracy_input.pack(pady=5)
+
+        tk.Label(window, text="Размер:").pack(pady=5)
+        size_input = tk.Entry(window)
+        size_input.pack(pady=5)
+
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_ip_camera(ip_input.get(), accuracy_input.get(), size_input.get())).pack(pady=10)
+
+    def open_webcam_analysis(self):
+        window = tk.Toplevel(self.master)
+        window.title("Анализ с веб-камеры")
+        window.geometry('240x240')
+
+        tk.Label(window, text="Процент точности:").pack(pady=5)
+        accuracy_input = tk.Entry(window)
+        accuracy_input.pack(pady=5)
+
+
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_webcam(accuracy_input.get())).pack(pady=10)
+
+    def select_file(self, window):
+        self.file_path = filedialog.askopenfilename()
+        # if file_path:
+        #     messagebox.showinfo("Выбранный файл", f"Выбрано: {file_path}")
+
+    def scan_image(self, accuracy):
+        cmd = f"python {os.path.join(ROOT_DIR,'yolov5','detect.py')} " \
+               f"--weights {os.path.join(ROOT_DIR, 'myyolo.pt')} " \
+               f"--source {self.file_path} " \
+               f"--project {os.path.join(ROOT_DIR, 'content', 'images')} " \
+               f"--name {datetime.now().date()} " \
+               f"--conf-thres {accuracy} " \
+               f"--exist-ok " \
+               f"--view-img " \
+              f"--line-thickness 1"
+        os.system(cmd)
+        messagebox.showinfo("Сканирование изображения", f"Сканирование изображения с точностью {accuracy}")
+
+    def scan_video(self, accuracy, size):
+        messagebox.showinfo("Сканирование видео", f"Сканирование видео с точностью {accuracy} и размером {size}")
+
+    def scan_ip_camera(self, ip_address, accuracy, size):
+        messagebox.showinfo("Сканирование IP-камеры", f"Сканирование потока с IP-камеры {ip_address} с точностью {accuracy} и размером {size}")
+
+    def scan_webcam(self, accuracy):
+        cmd = f"python {os.path.join(ROOT_DIR, 'yolov5', 'detect.py')} " \
+              f"--weights {os.path.join(ROOT_DIR, 'myyolo.pt')} " \
+              f"--source 0 " \
+              f"--project {os.path.join(ROOT_DIR, 'content', 'video')} " \
+              f"--name {datetime.now().date()} " \
+              f"--conf-thres {accuracy} " \
+              f"--exist-ok " \
+              f"--view-img " \
+              f"--line-thickness 1 " \
+              f"--save-csv "
+        os.system(cmd)
+        messagebox.showinfo("Сканирование веб-камеры", f"Сканирование веб-камеры с точностью {accuracy}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ImageAnalyzerApp(root)
+    root.mainloop()

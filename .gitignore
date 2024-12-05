@@ -4,3 +4,6 @@
 coco.names
 venv/
 .idea/
+
+venv/
+yolov5/
