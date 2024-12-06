@@ -6,24 +6,61 @@ from datetime import datetime
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 class ImageAnalyzerApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Анализ изображений и видео")
-        self.master.geometry("400x300")
+        self.master.geometry("300x350")
 
         # Кнопки
+        self.btn_image_analysis = tk.Button(master, text="Загрузка конфигураций", command=self.load_config)
+        self.btn_image_analysis.pack(pady=10)
+
+
         self.btn_image_analysis = tk.Button(master, text="Анализ изображения", command=self.open_image_analysis)
         self.btn_image_analysis.pack(pady=10)
 
         self.btn_video_analysis = tk.Button(master, text="Анализ видео", command=self.open_video_analysis)
         self.btn_video_analysis.pack(pady=10)
 
-        self.btn_ip_camera_analysis = tk.Button(master, text="Анализ видеоопотока с IP-камеры", command=self.open_ip_camera_analysis)
+        self.btn_ip_camera_analysis = tk.Button(master, text="Анализ видеоопотока с IP-камеры",
+                                                command=self.open_ip_camera_analysis)
         self.btn_ip_camera_analysis.pack(pady=10)
 
         self.btn_webcam_analysis = tk.Button(master, text="Анализ с веб-камеры", command=self.open_webcam_analysis)
         self.btn_webcam_analysis.pack(pady=10)
+
+        self.use_video_device = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(master, text="Использовать видеокарту", variable=self.use_video_device)
+        self.checkbutton.pack(pady=10)
+
+        self.on_write_date_scv = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(master, text="Сохранять данные в формате csv", variable=self.on_write_date_scv)
+        self.checkbutton.pack(pady=10)
+
+        self.on_write_date_txt = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(master, text="Сохранять данные в формате txt", variable=self.on_write_date_txt)
+        self.checkbutton.pack(pady=10)
+
+    def fix_config(self):
+        cmd = ''
+        if self.on_write_date_scv.get():
+            cmd += '--save-csv '
+        if self.on_write_date_txt.get():
+            cmd += '--save-txt '
+        if self.use_video_device.get():
+            cmd += "--device '0,1,2,3' "
+        else:
+            cmd += "--device cpu "
+        return cmd
+
+    def load_config(self):
+        self.config = {
+            'weights': f"--weights {os.path.join(ROOT_DIR,'config','model.pt')} ",
+            'data': f"--data {os.path.join(ROOT_DIR,'config','data.yaml')} ",
+        }
+
 
     def open_image_analysis(self):
         window = tk.Toplevel(self.master)
@@ -34,14 +71,10 @@ class ImageAnalyzerApp:
         tk.Button(window, text="Выбрать файл", command=lambda: self.select_file(window)).pack(pady=5)
 
         tk.Label(window, text="Процент точности:").pack(pady=5)
-        accuracy_input = tk.Entry(window)
-        accuracy_input.pack(pady=5)
+        accuracy_scale = tk.Scale(window, from_=0.5, to=1.0, resolution=0.01, orient=tk.HORIZONTAL)
+        accuracy_scale.pack(pady=5)
 
-        # tk.Label(window, text="Размер:").pack(pady=5)
-        # size_input = tk.Entry(window)
-        # size_input.pack(pady=5)
-
-        tk.Button(window, text="Сканировать", command=lambda: self.scan_image(accuracy_input.get())).pack(pady=10)
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_image(accuracy_scale.get())).pack(pady=10)
 
     def open_video_analysis(self):
         window = tk.Toplevel(self.master)
@@ -52,14 +85,10 @@ class ImageAnalyzerApp:
         tk.Button(window, text="Выбрать файл", command=lambda: self.select_file(window)).pack(pady=5)
 
         tk.Label(window, text="Процент точности:").pack(pady=5)
-        accuracy_input = tk.Entry(window)
-        accuracy_input.pack(pady=5)
+        accuracy_scale = tk.Scale(window, from_=0.5, to=1.0, resolution=0.01, orient=tk.HORIZONTAL)
+        accuracy_scale.pack(pady=5)
 
-        tk.Label(window, text="Размер:").pack(pady=5)
-        size_input = tk.Entry(window)
-        size_input.pack(pady=5)
-
-        tk.Button(window, text="Сканировать", command=lambda: self.scan_video(accuracy_input.get(), size_input.get())).pack(pady=10)
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_video(accuracy_scale.get())).pack(pady=10)
 
     def open_ip_camera_analysis(self):
         window = tk.Toplevel(self.master)
@@ -71,14 +100,11 @@ class ImageAnalyzerApp:
         ip_input.pack(pady=5)
 
         tk.Label(window, text="Процент точности:").pack(pady=5)
-        accuracy_input = tk.Entry(window)
-        accuracy_input.pack(pady=5)
+        accuracy_scale = tk.Scale(window, from_=0.5, to=1.0, resolution=0.01, orient=tk.HORIZONTAL)
+        accuracy_scale.pack(pady=5)
 
-        tk.Label(window, text="Размер:").pack(pady=5)
-        size_input = tk.Entry(window)
-        size_input.pack(pady=5)
-
-        tk.Button(window, text="Сканировать", command=lambda: self.scan_ip_camera(ip_input.get(), accuracy_input.get(), size_input.get())).pack(pady=10)
+        tk.Button(window, text="Сканировать",
+                  command=lambda: self.scan_ip_camera(ip_input.get(), accuracy_scale.get())).pack(pady=10)
 
     def open_webcam_analysis(self):
         window = tk.Toplevel(self.master)
@@ -86,11 +112,10 @@ class ImageAnalyzerApp:
         window.geometry('240x240')
 
         tk.Label(window, text="Процент точности:").pack(pady=5)
-        accuracy_input = tk.Entry(window)
-        accuracy_input.pack(pady=5)
+        accuracy_scale = tk.Scale(window, from_=0.5, to=1.0, resolution=0.01, orient=tk.HORIZONTAL)
+        accuracy_scale.pack(pady=5)
 
-
-        tk.Button(window, text="Сканировать", command=lambda: self.scan_webcam(accuracy_input.get())).pack(pady=10)
+        tk.Button(window, text="Сканировать", command=lambda: self.scan_webcam(accuracy_scale.get())).pack(pady=10)
 
     def select_file(self, window):
         self.file_path = filedialog.askopenfilename()
@@ -98,37 +123,63 @@ class ImageAnalyzerApp:
         #     messagebox.showinfo("Выбранный файл", f"Выбрано: {file_path}")
 
     def scan_image(self, accuracy):
-        cmd = f"python {os.path.join(ROOT_DIR,'yolov5','detect.py')} " \
-               f"--weights {os.path.join(ROOT_DIR, 'myyolo.pt')} " \
-               f"--source {self.file_path} " \
-               f"--project {os.path.join(ROOT_DIR, 'content', 'images')} " \
-               f"--name {datetime.now().date()} " \
-               f"--conf-thres {accuracy} " \
-               f"--exist-ok " \
-               f"--view-img " \
-              f"--line-thickness 1"
+        cmd = f"python {os.path.join(ROOT_DIR, 'yolov5', 'detect.py')} " \
+              f"{self.config.get('weights')} " \
+              f"{self.config.get('data')} " \
+              f"--source {self.file_path} " \
+              f"--project {os.path.join(ROOT_DIR, 'content', 'images')} " \
+              f"--name {datetime.now().date()} " \
+              f"--conf-thres {accuracy} " \
+              f"--exist-ok " \
+              f"--view-img " \
+              f"--line-thickness 1 "
+        cmd += self.fix_config()
         os.system(cmd)
-        messagebox.showinfo("Сканирование изображения", f"Сканирование изображения с точностью {accuracy}")
+        # messagebox.showinfo("Сканирование изображения", f"Сканирование изображения с точностью {accuracy}")
 
-    def scan_video(self, accuracy, size):
-        messagebox.showinfo("Сканирование видео", f"Сканирование видео с точностью {accuracy} и размером {size}")
+    def scan_video(self, accuracy):
+        cmd = f"python {os.path.join(ROOT_DIR, 'yolov5', 'detect.py')} " \
+              f"{self.config.get('weights')} " \
+              f"{self.config.get('data')} " \
+              f"--source {self.file_path} " \
+              f"--project {os.path.join(ROOT_DIR, 'content', 'video')} " \
+              f"--name {datetime.now().date()} " \
+              f"--conf-thres {accuracy} " \
+              f"--exist-ok " \
+              f"--view-img " \
+              f"--line-thickness 1 "
+        cmd += self.fix_config()
+        os.system(cmd)
+        # messagebox.showinfo("Сканирование видео", f"Сканирование видео с точностью {accuracy} и размером {size}")
 
-    def scan_ip_camera(self, ip_address, accuracy, size):
-        messagebox.showinfo("Сканирование IP-камеры", f"Сканирование потока с IP-камеры {ip_address} с точностью {accuracy} и размером {size}")
+    def scan_ip_camera(self, ip_address, accuracy):
+        cmd = f"python {os.path.join(ROOT_DIR, 'yolov5', 'detect.py')} " \
+              f"{self.config.get('weights')} " \
+              f"{self.config.get('data')} " \
+              f"--source '{ip_address}' " \
+              f"--project {os.path.join(ROOT_DIR, 'content', 'images')} " \
+              f"--name {datetime.now().date()} " \
+              f"--conf-thres {accuracy} " \
+              f"--exist-ok " \
+              f"--view-img " \
+              f"--line-thickness 1 "
+        cmd += self.fix_config()
+        os.system(cmd)
 
     def scan_webcam(self, accuracy):
         cmd = f"python {os.path.join(ROOT_DIR, 'yolov5', 'detect.py')} " \
-              f"--weights {os.path.join(ROOT_DIR, 'myyolo.pt')} " \
+              f"{self.config.get('weights')} " \
+              f"{self.config.get('data')} " \
               f"--source 0 " \
               f"--project {os.path.join(ROOT_DIR, 'content', 'video')} " \
               f"--name {datetime.now().date()} " \
               f"--conf-thres {accuracy} " \
               f"--exist-ok " \
               f"--view-img " \
-              f"--line-thickness 1 " \
-              f"--save-csv "
+              f"--line-thickness 1 "
+        cmd += self.fix_config()
         os.system(cmd)
-        messagebox.showinfo("Сканирование веб-камеры", f"Сканирование веб-камеры с точностью {accuracy}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
