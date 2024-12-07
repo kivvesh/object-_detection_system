@@ -11,7 +11,7 @@ class ImageAnalyzerApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Анализ изображений и видео")
-        self.master.geometry("300x350")
+        self.master.geometry("300x450")
 
         # Кнопки
         self.btn_image_analysis = tk.Button(master, text="Загрузка конфигураций", command=self.load_config)
@@ -35,6 +35,14 @@ class ImageAnalyzerApp:
         self.checkbutton = tk.Checkbutton(master, text="Использовать видеокарту", variable=self.use_video_device)
         self.checkbutton.pack(pady=10)
 
+        self.show_content = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(master, text="Визуализировать", variable=self.show_content)
+        self.checkbutton.pack(pady=10)
+
+        self.save_img_object = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(master, text="Сохранять изображения объектов", variable=self.save_img_object)
+        self.checkbutton.pack(pady=10)
+
         self.on_write_date_scv = tk.BooleanVar()
         self.checkbutton = tk.Checkbutton(master, text="Сохранять данные в формате csv", variable=self.on_write_date_scv)
         self.checkbutton.pack(pady=10)
@@ -50,9 +58,13 @@ class ImageAnalyzerApp:
         if self.on_write_date_txt.get():
             cmd += '--save-txt '
         if self.use_video_device.get():
-            cmd += "--device '0,1,2,3' "
-        else:
-            cmd += "--device cpu "
+            cmd += "--device 0 "
+        if self.save_img_object.get():
+            cmd += "--save-crop "
+        if self.show_content.get():
+            cmd += "--view-img  "
+        # else:
+        #     cmd += "--device cpu "
         return cmd
 
     def load_config(self):
@@ -131,8 +143,8 @@ class ImageAnalyzerApp:
               f"--name {datetime.now().date()} " \
               f"--conf-thres {accuracy} " \
               f"--exist-ok " \
-              f"--view-img " \
-              f"--line-thickness 1 "
+              f"--line-thickness 1 "\
+              f"--classes 0 "
         cmd += self.fix_config()
         os.system(cmd)
         # messagebox.showinfo("Сканирование изображения", f"Сканирование изображения с точностью {accuracy}")
@@ -146,8 +158,8 @@ class ImageAnalyzerApp:
               f"--name {datetime.now().date()} " \
               f"--conf-thres {accuracy} " \
               f"--exist-ok " \
-              f"--view-img " \
-              f"--line-thickness 1 "
+              f"--line-thickness 1 "\
+              f"--classes 0 "
         cmd += self.fix_config()
         os.system(cmd)
         # messagebox.showinfo("Сканирование видео", f"Сканирование видео с точностью {accuracy} и размером {size}")
@@ -161,8 +173,8 @@ class ImageAnalyzerApp:
               f"--name {datetime.now().date()} " \
               f"--conf-thres {accuracy} " \
               f"--exist-ok " \
-              f"--view-img " \
-              f"--line-thickness 1 "
+              f"--line-thickness 1 "\
+              f"--classes 0 "
         cmd += self.fix_config()
         os.system(cmd)
 
@@ -175,8 +187,8 @@ class ImageAnalyzerApp:
               f"--name {datetime.now().date()} " \
               f"--conf-thres {accuracy} " \
               f"--exist-ok " \
-              f"--view-img " \
-              f"--line-thickness 1 "
+              f"--line-thickness 1 "\
+              f"--classes 0 "
         cmd += self.fix_config()
         os.system(cmd)
 
